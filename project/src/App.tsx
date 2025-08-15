@@ -1,5 +1,4 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Routes, Route, BrowserRouter } from 'react-router-dom';
 import Navigation from './components/Navigation';
 import Login from './components/Login';
 import States from './components/States';
@@ -9,7 +8,7 @@ import Contact from './components/Contact';
 
 function App() {
   return (
-    <Router>
+    <BrowserRouter>
       <Navigation />
       <Routes>
         <Route path="/" element={<Login />} />
@@ -18,7 +17,7 @@ function App() {
         <Route path="/packages" element={<Packages />} />
         <Route path="/contact" element={<Contact />} />
       </Routes>
-    </Router>
+    </BrowserRouter>
   );
 }
 

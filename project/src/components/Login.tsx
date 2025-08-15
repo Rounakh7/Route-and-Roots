@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Container, Form, Button, Card } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
-import { auth, db } from '../firebaseConfig'; // adjust path if needed
+import { auth, db } from '../firebaseConfig';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -13,12 +13,15 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+
     try {
-      // Try to login user
+      // Try logging in
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
@@ -27,25 +30,34 @@ const Login = () => {
         lastLogin: new Date().toISOString(),
       });
 
+      alert('Login successful!');
       navigate('/Packages');
-    } catch (loginError) {
-      // If login fails, try to register the user
-      try {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
+    } catch (loginError: any) {
+      // If user not found, register them
+      if (loginError.code === 'auth/user-not-found') {
+        try {
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          const user = userCredential.user;
 
-        await setDoc(doc(db, 'users', user.uid), {
-          email: user.email,
-          createdAt: new Date().toISOString(),
-        });
+          await setDoc(doc(db, 'users', user.uid), {
+            email: user.email,
+            createdAt: new Date().toISOString(),
+          });
 
-        alert('Account created successfully!');
-        navigate('/Packages');
-      } catch (signupError: any) {
-        console.error('Error:', signupError.message);
-        alert('Login/Register failed. Please check your credentials.');
+          alert('Account created successfully!');
+          navigate('/Packages');
+        } catch (signupError: any) {
+          console.error('Signup error:', signupError.code, signupError.message);
+          alert(`Signup failed: ${signupError.message}`);
+        }
+      } else if (loginError.code === 'auth/wrong-password') {
+        alert('Incorrect password. Please try again.');
+      } else {
+        alert(`Login failed: ${loginError.message}`);
       }
     }
+
+    setLoading(false);
   };
 
   const handleForgotPassword = async () => {
@@ -58,7 +70,7 @@ const Login = () => {
       alert('Password reset link sent to your email.');
     } catch (err: any) {
       console.error(err.message);
-      alert('Failed to send password reset link.');
+      alert(`Failed to send password reset link: ${err.message}`);
     }
   };
 
@@ -67,7 +79,6 @@ const Login = () => {
       <Container className="d-flex justify-content-center align-items-center min-vh-100">
         <Card style={{ width: '400px', backgroundColor: 'rgba(255, 255, 255, 0.95)' }}>
           <Card.Body className="p-4">
-
             <h2 className="text-center mb-3 text-dark">Welcome to RNR India Travel Guide</h2>
             <p className="text-center text-muted mb-4">Login or register to continue your journey!</p>
 
@@ -108,11 +119,10 @@ const Login = () => {
                 </Button>
               </div>
 
-              <Button variant="primary" type="submit" className="w-100">
-                Sign In
+              <Button variant="primary" type="submit" className="w-100" disabled={loading}>
+                {loading ? 'Please wait...' : 'Sign In'}
               </Button>
             </Form>
-
           </Card.Body>
         </Card>
       </Container>
